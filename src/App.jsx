@@ -14,36 +14,376 @@ const sortedByCategory = categories
       .sort((a, b) => getYear(a.year) - getYear(b.year))
   }))
 
-// Keywords to match user input to inventions
+// Keywords to match user input to inventions - includes natural phrases
 const inventionKeywords = {
-  "Alarm Clock": ["alarm", "wake up", "woke up", "clock", "time", "morning alarm"],
-  "Indoor Plumbing": ["shower", "bath", "toilet", "bathroom", "sink", "faucet", "water", "flush", "plumbing"],
-  "Toilet Paper": ["toilet paper", "tp", "wipe", "tissue"],
-  "Glasses": ["glasses", "contacts", "see", "vision", "eyeglasses", "spectacles"],
-  "Zipper": ["zipper", "zip", "jacket", "jeans", "zip up"],
-  "Refrigerator": ["fridge", "refrigerator", "cold", "milk", "juice", "breakfast", "eggs", "food"],
-  "Microwave Oven": ["microwave", "heat up", "reheat", "warm up", "nuke"],
-  "Toothbrush": ["brush teeth", "toothbrush", "teeth", "dental", "toothpaste"],
-  "Electric Light Bulb": ["light", "lights", "lamp", "turn on the light", "switch", "bright"],
-  "Umbrella": ["umbrella", "rain", "raining", "wet"],
-  "Bicycle": ["bike", "bicycle", "cycle", "ride"],
-  "GPS Navigation": ["gps", "maps", "directions", "navigate", "google maps", "waze"],
-  "Internet": ["internet", "wifi", "online", "google", "search", "website", "email", "browse"],
-  "Video Games": ["video game", "game", "gaming", "xbox", "playstation", "nintendo", "computer game"],
-  "Washing Machine": ["laundry", "wash clothes", "washing machine", "washer"],
-  "Air Conditioning": ["ac", "air conditioning", "cool", "air conditioner", "cooling"],
-  "Ballpoint Pen": ["pen", "write", "writing", "note"],
-  "Band-Aids": ["bandaid", "band-aid", "bandage", "cut", "scrape"],
-  "Calculator": ["calculator", "calculate", "math"],
-  "Canned Food": ["can", "canned", "tin"],
-  "Shopping Cart": ["shopping cart", "cart", "grocery", "shopping"],
-  "Velcro": ["velcro", "shoes", "sneakers"],
-  "Sunscreen": ["sunscreen", "sunblock", "spf"],
-  "Coffee": ["coffee", "caffeine", "espresso"],
-  "Elevator": ["elevator", "lift"],
-  "Seat Belts": ["seatbelt", "seat belt", "buckle"],
-  "Rubber Tires": ["car", "drive", "driving", "tires"],
-  "Windshield Wipers": ["wipers", "windshield"],
+  "Alarm Clock": [
+    "alarm", "snooze", "hit snooze", "wake up", "woke up", "clock", "wake me",
+    "phone alarm", "set an alarm", "alarm goes off", "alarm rings", "alarm wakes",
+    "get up on time", "oversleep", "sleep in", "morning alarm", "buzzer"
+  ],
+  "Indoor Plumbing": [
+    "shower", "bath", "toilet", "bathroom", "sink", "faucet", "water", "flush",
+    "plumbing", "hot water", "cold water", "turn on water", "wash hands", "rinse",
+    "running water", "tap", "drain", "pipes"
+  ],
+  "Toilet Paper": [
+    "toilet paper", "tp", "wipe", "tissue", "bathroom tissue"
+  ],
+  "Glasses": [
+    "glasses", "contacts", "see clearly", "vision", "eyeglasses", "spectacles",
+    "put on my glasses", "can't see", "blurry", "reading glasses", "prescription"
+  ],
+  "Zipper": [
+    "zipper", "zip up", "zip my", "unzip", "jacket", "hoodie", "jeans"
+  ],
+  "Refrigerator": [
+    "fridge", "refrigerator", "cold food", "milk", "juice", "eggs", "butter",
+    "grab from the fridge", "open the fridge", "cold drinks", "keep cold",
+    "leftovers", "yogurt", "cheese", "frozen"
+  ],
+  "Microwave Oven": [
+    "microwave", "heat up", "reheat", "warm up", "nuke", "defrost", "zap",
+    "pop in the microwave", "microwave it", "30 seconds", "minute in the"
+  ],
+  "Toothbrush": [
+    "brush teeth", "toothbrush", "teeth", "dental", "toothpaste", "brush my teeth",
+    "clean teeth", "oral", "mouth", "floss"
+  ],
+  "Electric Light Bulb": [
+    "light", "lights", "lamp", "turn on the light", "switch on", "bright",
+    "flip the switch", "light switch", "turn on a light", "it's dark",
+    "can't see in the dark", "need light", "lightbulb"
+  ],
+  "Umbrella": [
+    "umbrella", "rain", "raining", "rainy", "wet outside", "stay dry", "it's raining"
+  ],
+  "Bicycle": [
+    "bike", "bicycle", "cycle", "ride my bike", "pedal", "biking"
+  ],
+  "GPS Navigation": [
+    "gps", "maps", "directions", "navigate", "google maps", "waze", "apple maps",
+    "navigation", "find my way", "get directions", "where am i going", "route"
+  ],
+  "Internet": [
+    "internet", "wifi", "online", "google", "search", "website", "email", "browse",
+    "look it up", "check online", "go online", "surf the web", "download", "stream"
+  ],
+  "Video Games": [
+    "video game", "game", "gaming", "xbox", "playstation", "nintendo", "computer game",
+    "play games", "fortnite", "minecraft", "roblox", "switch", "console"
+  ],
+  "Washing Machine": [
+    "laundry", "wash clothes", "washing machine", "washer", "dryer", "clean clothes"
+  ],
+  "Air Conditioning": [
+    "ac", "air conditioning", "cool off", "air conditioner", "cooling", "cold air",
+    "turn on the ac", "it's hot"
+  ],
+  "Ballpoint Pen": [
+    "pen", "write", "writing", "take notes", "write down", "jot down"
+  ],
+  "Band-Aids": [
+    "bandaid", "band-aid", "bandage", "cut myself", "scrape", "bleeding", "wound"
+  ],
+  "Calculator": [
+    "calculator", "calculate", "math homework", "add up", "compute"
+  ],
+  "Canned Food": [
+    "canned", "can of", "tin of", "open a can"
+  ],
+  "Velcro": [
+    "velcro", "strap", "stick together"
+  ],
+  "Sunscreen": [
+    "sunscreen", "sunblock", "spf", "sun protection", "put on sunscreen"
+  ],
+  "Seat Belts": [
+    "seatbelt", "seat belt", "buckle up", "buckle in", "click it", "strap in"
+  ],
+  "Rubber Tires": [
+    "car", "drive", "driving", "drove", "tires", "ride in a car", "get a ride",
+    "my mom drives", "my dad drives", "parent drives", "carpool"
+  ],
+  "Windshield Wipers": [
+    "wipers", "windshield", "see through the rain"
+  ],
+  // Phone-related - maps to multiple possible inventions
+  "phone_check": [
+    "check my phone", "look at my phone", "phone", "grab my phone", "scroll",
+    "check notifications", "text", "message"
+  ]
+}
+
+// Contextual acknowledgments and follow-ups for each invention
+const inventionResponses = {
+  "Alarm Clock": {
+    acknowledgments: [
+      "Ah, hitting snooze on your alarm!",
+      "Your alarm clock wakes you up!",
+      "Relying on that alarm to start your day!"
+    ],
+    followUps: [
+      "What do you do after you finally get out of bed?",
+      "Once you're up, what's the next thing you do?",
+      "And then what happens after you wake up?"
+    ]
+  },
+  "Indoor Plumbing": {
+    acknowledgments: [
+      "Using running water - so convenient!",
+      "Turning on that faucet!",
+      "Hot and cold water at your fingertips!"
+    ],
+    followUps: [
+      "What else do you do in the bathroom?",
+      "Do you do anything else while you're in there?",
+      "Anything else before you leave the bathroom?"
+    ]
+  },
+  "Toilet Paper": {
+    acknowledgments: [
+      "Toilet paper - something we all take for granted!",
+      "That roll of TP!"
+    ],
+    followUps: [
+      "What else is part of your bathroom routine?",
+      "Anything else before you're done in the bathroom?"
+    ]
+  },
+  "Glasses": {
+    acknowledgments: [
+      "Putting on your glasses to see clearly!",
+      "Those glasses help you see the world!"
+    ],
+    followUps: [
+      "Now that you can see, what do you do next?",
+      "What's next in your morning routine?"
+    ]
+  },
+  "Refrigerator": {
+    acknowledgments: [
+      "Opening up the fridge!",
+      "Getting something cold from the refrigerator!",
+      "The fridge keeps everything fresh!"
+    ],
+    followUps: [
+      "How do you prepare your food?",
+      "Do you heat anything up?",
+      "What else do you eat or drink?"
+    ]
+  },
+  "Microwave Oven": {
+    acknowledgments: [
+      "Zapping it in the microwave - so quick!",
+      "The microwave heats things up in seconds!",
+      "Using the microwave to warm up your food!"
+    ],
+    followUps: [
+      "What else do you have for breakfast?",
+      "Anything to drink with that?",
+      "What else before you're done eating?"
+    ]
+  },
+  "Toothbrush": {
+    acknowledgments: [
+      "Brushing those teeth!",
+      "Keeping your teeth clean with your toothbrush!",
+      "Brushing up for fresh breath!"
+    ],
+    followUps: [
+      "What else do you do to get ready?",
+      "Anything else before you leave the bathroom?"
+    ]
+  },
+  "Electric Light Bulb": {
+    acknowledgments: [
+      "Flipping on the lights!",
+      "Let there be light!",
+      "Turning on the lights to see!"
+    ],
+    followUps: [
+      "Now that you can see, what do you do?",
+      "What's next now that you have light?"
+    ]
+  },
+  "Bicycle": {
+    acknowledgments: [
+      "Riding your bike!",
+      "Hopping on your bicycle!",
+      "Pedaling your way there!"
+    ],
+    followUps: [
+      "How do you know which way to go?",
+      "What if the weather is bad?",
+      "Anything else about your trip?"
+    ]
+  },
+  "GPS Navigation": {
+    acknowledgments: [
+      "Using GPS to find your way!",
+      "Maps on your phone showing the route!",
+      "Getting directions from your device!"
+    ],
+    followUps: [
+      "How else do you get ready for the trip?",
+      "Anything else about traveling?"
+    ]
+  },
+  "Seat Belts": {
+    acknowledgments: [
+      "Buckling up for safety!",
+      "Clicking in that seat belt!",
+      "Strapping in before the ride!"
+    ],
+    followUps: [
+      "What else happens during your trip?",
+      "How do you find your way there?"
+    ]
+  },
+  "Rubber Tires": {
+    acknowledgments: [
+      "Getting a ride in the car!",
+      "Driving on those rubber tires!",
+      "Cars make travel so much easier!"
+    ],
+    followUps: [
+      "Do you buckle up?",
+      "How do you know which way to go?",
+      "What if it's raining outside?"
+    ]
+  },
+  "Umbrella": {
+    acknowledgments: [
+      "Grabbing an umbrella for the rain!",
+      "Staying dry with your umbrella!",
+      "Good thinking with the umbrella!"
+    ],
+    followUps: [
+      "How else do you prepare for your trip?",
+      "What else about getting to school?"
+    ]
+  },
+  "Zipper": {
+    acknowledgments: [
+      "Zipping up your clothes!",
+      "That zipper keeps everything together!"
+    ],
+    followUps: [
+      "What else do you put on?",
+      "What's next in getting dressed?"
+    ]
+  },
+  "Internet": {
+    acknowledgments: [
+      "Going online!",
+      "Using the internet!",
+      "Checking things online!"
+    ],
+    followUps: [
+      "What else do you do on your devices?",
+      "How else do you use technology in the morning?"
+    ]
+  },
+  "Video Games": {
+    acknowledgments: [
+      "Playing video games!",
+      "Getting some gaming in!"
+    ],
+    followUps: [
+      "Do you do anything else with electronics?",
+      "What about getting ready for school?"
+    ]
+  },
+  "Washing Machine": {
+    acknowledgments: [
+      "Using the washing machine for clean clothes!",
+      "Getting your laundry done!"
+    ],
+    followUps: [
+      "What else helps you get dressed?",
+      "What do you put on?"
+    ]
+  },
+  "Air Conditioning": {
+    acknowledgments: [
+      "Keeping cool with AC!",
+      "The air conditioning keeps you comfortable!"
+    ],
+    followUps: [
+      "What else makes your morning comfortable?",
+      "What's next in your routine?"
+    ]
+  },
+  "Ballpoint Pen": {
+    acknowledgments: [
+      "Writing with your pen!",
+      "Jotting things down!"
+    ],
+    followUps: [
+      "What else do you do to get ready for school?",
+      "What other supplies do you use?"
+    ]
+  },
+  "Band-Aids": {
+    acknowledgments: [
+      "Putting on a bandage!",
+      "Band-aids to the rescue!"
+    ],
+    followUps: [
+      "Hope you're okay! What else is in your routine?",
+      "What else happens in your morning?"
+    ]
+  },
+  "Calculator": {
+    acknowledgments: [
+      "Using a calculator!",
+      "Crunching numbers!"
+    ],
+    followUps: [
+      "What other tools do you use?",
+      "What else helps you get ready?"
+    ]
+  },
+  "Canned Food": {
+    acknowledgments: [
+      "Opening up a can!",
+      "Canned food for convenience!"
+    ],
+    followUps: [
+      "What else do you eat?",
+      "How do you prepare the rest of your food?"
+    ]
+  },
+  "Windshield Wipers": {
+    acknowledgments: [
+      "Those windshield wipers keeping the view clear!",
+      "Wipers working in the rain!"
+    ],
+    followUps: [
+      "What else helps during the drive?",
+      "How do you stay safe in the car?"
+    ]
+  }
+}
+
+// Get a contextual response based on discovered inventions
+const getContextualResponse = (newDiscovered, stage) => {
+  if (newDiscovered.length === 0) {
+    return null
+  }
+
+  // Get the first new discovery to acknowledge
+  const mainDiscovery = newDiscovered[0]
+  const responses = inventionResponses[mainDiscovery.name]
+
+  if (responses) {
+    const ack = responses.acknowledgments[Math.floor(Math.random() * responses.acknowledgments.length)]
+    const followUp = responses.followUps[Math.floor(Math.random() * responses.followUps.length)]
+    return `${ack} ${followUp}`
+  }
+
+  // Generic response if no specific one exists
+  return `${mainDiscovery.name} - that's one we use every day! What else do you do?`
 }
 
 function Header({ currentView, onNavigate }) {
@@ -217,11 +557,24 @@ function DayWithoutView({ onSelectInvention }) {
           }
         }, missed.length > 0 ? 2000 : 500)
       } else {
-        // Ask follow-up or give hint
-        const hint = currentPrompt.hints[Math.floor(Math.random() * currentPrompt.hints.length)]
+        // Generate contextual response based on what was found
+        let responseText
+        if (newDiscovered.length > 0) {
+          responseText = getContextualResponse(newDiscovered, stage)
+        } else {
+          // No inventions found - ask a clarifying question about what they said
+          const genericResponses = [
+            "Interesting! Can you tell me more about how you do that?",
+            "Got it! What other things do you use or do at this point?",
+            "I see! What else is part of this routine?",
+            "Tell me more - what tools or items do you use?",
+            "And what do you use to help with that?"
+          ]
+          responseText = genericResponses[Math.floor(Math.random() * genericResponses.length)]
+        }
         setConversation(prev => [...prev, {
           type: 'system',
-          text: newDiscovered.length > 0 ? currentPrompt.followUp : hint
+          text: responseText
         }])
       }
     }, 500)
