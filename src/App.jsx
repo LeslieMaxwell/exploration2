@@ -14,27 +14,59 @@ const sortedByCategory = categories
       .sort((a, b) => getYear(a.year) - getYear(b.year))
   }))
 
+// Keywords to match user input to inventions
+const inventionKeywords = {
+  "Alarm Clock": ["alarm", "wake up", "woke up", "clock", "time", "morning alarm"],
+  "Indoor Plumbing": ["shower", "bath", "toilet", "bathroom", "sink", "faucet", "water", "flush", "plumbing"],
+  "Toilet Paper": ["toilet paper", "tp", "wipe", "tissue"],
+  "Glasses": ["glasses", "contacts", "see", "vision", "eyeglasses", "spectacles"],
+  "Zipper": ["zipper", "zip", "jacket", "jeans", "zip up"],
+  "Refrigerator": ["fridge", "refrigerator", "cold", "milk", "juice", "breakfast", "eggs", "food"],
+  "Microwave Oven": ["microwave", "heat up", "reheat", "warm up", "nuke"],
+  "Toothbrush": ["brush teeth", "toothbrush", "teeth", "dental", "toothpaste"],
+  "Electric Light Bulb": ["light", "lights", "lamp", "turn on the light", "switch", "bright"],
+  "Umbrella": ["umbrella", "rain", "raining", "wet"],
+  "Bicycle": ["bike", "bicycle", "cycle", "ride"],
+  "GPS Navigation": ["gps", "maps", "directions", "navigate", "google maps", "waze"],
+  "Internet": ["internet", "wifi", "online", "google", "search", "website", "email", "browse"],
+  "Video Games": ["video game", "game", "gaming", "xbox", "playstation", "nintendo", "computer game"],
+  "Washing Machine": ["laundry", "wash clothes", "washing machine", "washer"],
+  "Air Conditioning": ["ac", "air conditioning", "cool", "air conditioner", "cooling"],
+  "Ballpoint Pen": ["pen", "write", "writing", "note"],
+  "Band-Aids": ["bandaid", "band-aid", "bandage", "cut", "scrape"],
+  "Calculator": ["calculator", "calculate", "math"],
+  "Canned Food": ["can", "canned", "tin"],
+  "Shopping Cart": ["shopping cart", "cart", "grocery", "shopping"],
+  "Velcro": ["velcro", "shoes", "sneakers"],
+  "Sunscreen": ["sunscreen", "sunblock", "spf"],
+  "Coffee": ["coffee", "caffeine", "espresso"],
+  "Elevator": ["elevator", "lift"],
+  "Seat Belts": ["seatbelt", "seat belt", "buckle"],
+  "Rubber Tires": ["car", "drive", "driving", "tires"],
+  "Windshield Wipers": ["wipers", "windshield"],
+}
+
 function Header({ currentView, onNavigate }) {
   return (
     <header className="header">
       <div className="header-content">
-        <h1 onClick={() => onNavigate('explore')}>
+        <h1 onClick={() => onNavigate('day-without')}>
           <span className="header-icon">🕰️</span>
           Life Before...
         </h1>
-        <p className="tagline">Travel through time and discover how inventions changed everything!</p>
+        <p className="tagline">Discover how different life was before everyday inventions!</p>
         <nav className="nav">
-          <button
-            className={`nav-btn ${currentView === 'explore' ? 'active' : ''}`}
-            onClick={() => onNavigate('explore')}
-          >
-            🗺️ Explore
-          </button>
           <button
             className={`nav-btn ${currentView === 'day-without' ? 'active' : ''}`}
             onClick={() => onNavigate('day-without')}
           >
             🌅 A Day Without...
+          </button>
+          <button
+            className={`nav-btn ${currentView === 'explore' ? 'active' : ''}`}
+            onClick={() => onNavigate('explore')}
+          >
+            🗺️ Explore
           </button>
           <button
             className={`nav-btn ${currentView === 'time-challenge' ? 'active' : ''}`}
@@ -51,6 +83,357 @@ function Header({ currentView, onNavigate }) {
         </nav>
       </div>
     </header>
+  )
+}
+
+function DayWithoutView({ onSelectInvention }) {
+  const [stage, setStage] = useState('intro') // intro, morning, bathroom, breakfast, travel, results
+  const [userInput, setUserInput] = useState('')
+  const [discoveredInventions, setDiscoveredInventions] = useState([])
+  const [currentPrompt, setCurrentPrompt] = useState(null)
+  const [conversation, setConversation] = useState([])
+  const [missedInventions, setMissedInventions] = useState([])
+  const inputRef = useRef(null)
+
+  const prompts = {
+    morning: {
+      question: "It's 6:30 AM and you need to get ready for school. What's the first thing you do when you wake up?",
+      followUp: "What else do you do to get ready in the morning?",
+      hints: ["Do you need to see what time it is?", "How do you make sure you wake up on time?", "Can you see clearly when you wake up?"],
+      relevantInventions: ["Alarm Clock", "Glasses", "Electric Light Bulb"]
+    },
+    bathroom: {
+      question: "Time to use the bathroom and get cleaned up! Describe what you do.",
+      followUp: "Anything else in the bathroom?",
+      hints: ["How do you wash yourself?", "What about your teeth?", "Where does the water come from?"],
+      relevantInventions: ["Indoor Plumbing", "Toilet Paper", "Toothbrush"]
+    },
+    breakfast: {
+      question: "Now it's breakfast time! What do you eat and how do you prepare it?",
+      followUp: "How else do you get your food ready?",
+      hints: ["Where do you keep your food cold?", "How do you heat things up quickly?", "What do you drink?"],
+      relevantInventions: ["Refrigerator", "Microwave Oven", "Canned Food"]
+    },
+    travel: {
+      question: "Time to head out! How do you get to school or your destination?",
+      followUp: "What helps you along the way?",
+      hints: ["How do you know which way to go?", "What if it's raining?", "How do you stay safe in a car?"],
+      relevantInventions: ["Bicycle", "GPS Navigation", "Umbrella", "Seat Belts", "Rubber Tires"]
+    }
+  }
+
+  const stages = ['morning', 'bathroom', 'breakfast', 'travel']
+
+  const findInventionsInText = (text) => {
+    const found = []
+    const lowerText = text.toLowerCase()
+
+    for (const [inventionName, keywords] of Object.entries(inventionKeywords)) {
+      for (const keyword of keywords) {
+        if (lowerText.includes(keyword.toLowerCase())) {
+          const invention = inventions.find(i => i.name === inventionName)
+          if (invention && !found.find(f => f.id === invention.id)) {
+            found.push(invention)
+          }
+          break
+        }
+      }
+    }
+    return found
+  }
+
+  const startJourney = () => {
+    setStage('morning')
+    setCurrentPrompt(prompts.morning)
+    setConversation([{
+      type: 'system',
+      text: prompts.morning.question
+    }])
+    setDiscoveredInventions([])
+    setMissedInventions([])
+    setTimeout(() => inputRef.current?.focus(), 100)
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!userInput.trim()) return
+
+    const found = findInventionsInText(userInput)
+    const newDiscovered = found.filter(f => !discoveredInventions.find(d => d.id === f.id))
+
+    // Add user message
+    const newConversation = [...conversation, { type: 'user', text: userInput }]
+
+    // Add response about found inventions
+    if (newDiscovered.length > 0) {
+      const inventionNames = newDiscovered.map(i => i.name).join(', ')
+      newConversation.push({
+        type: 'discovery',
+        text: `You mentioned: ${inventionNames}!`,
+        inventions: newDiscovered
+      })
+      setDiscoveredInventions([...discoveredInventions, ...newDiscovered])
+    }
+
+    setConversation(newConversation)
+    setUserInput('')
+
+    // Check if we should move to next stage or ask follow-up
+    setTimeout(() => {
+      const currentStageIndex = stages.indexOf(stage)
+      const stageInventions = currentPrompt.relevantInventions
+      const foundForStage = [...discoveredInventions, ...newDiscovered].filter(d =>
+        stageInventions.includes(d.name)
+      )
+
+      if (foundForStage.length >= 2 || newConversation.filter(c => c.type === 'user').length >= 2) {
+        // Check for missed inventions in this stage
+        const missed = stageInventions
+          .filter(name => !foundForStage.find(f => f.name === name))
+          .map(name => inventions.find(i => i.name === name))
+          .filter(Boolean)
+
+        if (missed.length > 0) {
+          setConversation(prev => [...prev, {
+            type: 'missed',
+            text: `Did you think about these?`,
+            inventions: missed
+          }])
+          setMissedInventions(prev => [...prev, ...missed])
+        }
+
+        // Move to next stage after a delay
+        setTimeout(() => {
+          if (currentStageIndex < stages.length - 1) {
+            const nextStage = stages[currentStageIndex + 1]
+            setStage(nextStage)
+            setCurrentPrompt(prompts[nextStage])
+            setConversation(prev => [...prev, {
+              type: 'system',
+              text: prompts[nextStage].question
+            }])
+          } else {
+            setStage('results')
+          }
+        }, missed.length > 0 ? 2000 : 500)
+      } else {
+        // Ask follow-up or give hint
+        const hint = currentPrompt.hints[Math.floor(Math.random() * currentPrompt.hints.length)]
+        setConversation(prev => [...prev, {
+          type: 'system',
+          text: newDiscovered.length > 0 ? currentPrompt.followUp : hint
+        }])
+      }
+    }, 500)
+  }
+
+  const skipToNext = () => {
+    const currentStageIndex = stages.indexOf(stage)
+    const stageInventions = currentPrompt.relevantInventions
+    const foundForStage = discoveredInventions.filter(d => stageInventions.includes(d.name))
+
+    // Add missed inventions
+    const missed = stageInventions
+      .filter(name => !foundForStage.find(f => f.name === name))
+      .map(name => inventions.find(i => i.name === name))
+      .filter(Boolean)
+
+    if (missed.length > 0) {
+      setMissedInventions(prev => [...prev, ...missed])
+    }
+
+    if (currentStageIndex < stages.length - 1) {
+      const nextStage = stages[currentStageIndex + 1]
+      setStage(nextStage)
+      setCurrentPrompt(prompts[nextStage])
+      setConversation(prev => [...prev, {
+        type: 'system',
+        text: prompts[nextStage].question
+      }])
+    } else {
+      setStage('results')
+    }
+  }
+
+  const conversationEndRef = useRef(null)
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [conversation])
+
+  if (stage === 'intro') {
+    return (
+      <div className="day-without-view">
+        <div className="intro-card">
+          <div className="intro-icon">🌅</div>
+          <h2>A Day Without Modern Inventions</h2>
+          <p>
+            Let's walk through your morning routine together. Tell me what you normally do,
+            and I'll show you what life was like before those everyday things existed!
+          </p>
+          <div className="intro-preview">
+            <span>🛏️ Waking up</span>
+            <span>→</span>
+            <span>🚿 Bathroom</span>
+            <span>→</span>
+            <span>🍳 Breakfast</span>
+            <span>→</span>
+            <span>🚗 Travel</span>
+          </div>
+          <button className="start-btn" onClick={startJourney}>
+            Start My Morning →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (stage === 'results') {
+    const allFound = [...discoveredInventions]
+    const allMissed = missedInventions.filter(m => !allFound.find(f => f.id === m.id))
+
+    return (
+      <div className="day-without-view">
+        <div className="results-card">
+          <h2>🎉 Journey Complete!</h2>
+          <p className="results-summary">
+            You discovered <strong>{allFound.length}</strong> inventions in your morning routine!
+          </p>
+
+          {allFound.length > 0 && (
+            <div className="results-section">
+              <h3>✨ Inventions You Found:</h3>
+              <div className="results-grid">
+                {allFound.map(inv => (
+                  <button
+                    key={inv.id}
+                    className="result-item found"
+                    onClick={() => onSelectInvention(inv)}
+                  >
+                    <span className="result-emoji">{inv.emoji}</span>
+                    <span className="result-name">{inv.name}</span>
+                    <span className="result-year">{inv.year}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {allMissed.length > 0 && (
+            <div className="results-section">
+              <h3>🤔 Others You Might Use:</h3>
+              <div className="results-grid">
+                {allMissed.map(inv => (
+                  <button
+                    key={inv.id}
+                    className="result-item missed"
+                    onClick={() => onSelectInvention(inv)}
+                  >
+                    <span className="result-emoji">{inv.emoji}</span>
+                    <span className="result-name">{inv.name}</span>
+                    <span className="result-year">{inv.year}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="results-cta">Click any invention to learn what life was like before it existed!</p>
+
+          <button className="start-btn" onClick={() => setStage('intro')}>
+            🔄 Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="day-without-view">
+      <div className="chat-container">
+        <div className="stage-indicator">
+          {stages.map((s, idx) => (
+            <div key={s} className={`stage-dot ${s === stage ? 'active' : ''} ${stages.indexOf(stage) > idx ? 'completed' : ''}`}>
+              {s === 'morning' && '🛏️'}
+              {s === 'bathroom' && '🚿'}
+              {s === 'breakfast' && '🍳'}
+              {s === 'travel' && '🚗'}
+            </div>
+          ))}
+        </div>
+
+        <div className="conversation">
+          {conversation.map((msg, idx) => (
+            <div key={idx} className={`message ${msg.type}`}>
+              {msg.type === 'system' && (
+                <div className="system-message">
+                  <span className="bot-avatar">🕰️</span>
+                  <p>{msg.text}</p>
+                </div>
+              )}
+              {msg.type === 'user' && (
+                <div className="user-message">
+                  <p>{msg.text}</p>
+                </div>
+              )}
+              {msg.type === 'discovery' && (
+                <div className="discovery-message">
+                  <p>{msg.text}</p>
+                  <div className="discovery-items">
+                    {msg.inventions.map(inv => (
+                      <button
+                        key={inv.id}
+                        className="discovery-tag"
+                        onClick={() => onSelectInvention(inv)}
+                      >
+                        {inv.emoji} {inv.name} ({inv.year})
+                      </button>
+                    ))}
+                  </div>
+                  <p className="discovery-prompt">
+                    Click to see what life was like before!
+                  </p>
+                </div>
+              )}
+              {msg.type === 'missed' && (
+                <div className="missed-message">
+                  <p>{msg.text}</p>
+                  <div className="discovery-items">
+                    {msg.inventions.map(inv => (
+                      <button
+                        key={inv.id}
+                        className="discovery-tag missed"
+                        onClick={() => onSelectInvention(inv)}
+                      >
+                        {inv.emoji} {inv.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={conversationEndRef} />
+        </div>
+
+        <form className="chat-input" onSubmit={handleSubmit}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            placeholder="Type what you do..."
+            autoFocus
+          />
+          <button type="submit" disabled={!userInput.trim()}>
+            Send
+          </button>
+        </form>
+
+        <button className="skip-btn" onClick={skipToNext}>
+          Skip to {stages.indexOf(stage) < stages.length - 1 ? 'next part' : 'results'} →
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -133,7 +516,7 @@ function ExploreView({ onSelectInvention }) {
   return (
     <div className="explore-view">
       <div className="explore-intro">
-        <h2>🚀 Explore Inventions Through Time</h2>
+        <h2>🗺️ Explore Inventions Through Time</h2>
         <p>Each category shows inventions in chronological order. Click any invention to discover what life was like before it existed!</p>
       </div>
 
@@ -148,160 +531,8 @@ function ExploreView({ onSelectInvention }) {
   )
 }
 
-function DayWithoutView({ onSelectInvention }) {
-  const [selectedInvention, setSelectedInvention] = useState(null)
-  const [currentScenario, setCurrentScenario] = useState(0)
-  const [revealed, setRevealed] = useState(false)
-
-  const scenarios = [
-    {
-      time: "6:00 AM - Wake Up",
-      modern: "Your alarm clock wakes you up at exactly 6:00 AM.",
-      inventions: ["Alarm Clock"],
-      questions: ["How would you wake up on time without an alarm?", "What if you had to be somewhere important early in the morning?"]
-    },
-    {
-      time: "6:15 AM - Bathroom",
-      modern: "You head to the bathroom, use the toilet, and take a warm shower.",
-      inventions: ["Indoor Plumbing", "Toilet Paper"],
-      questions: ["Where would you go to the bathroom?", "How would you clean yourself?"]
-    },
-    {
-      time: "6:45 AM - Getting Ready",
-      modern: "You put on your glasses, zip up your jacket, and check yourself in the mirror.",
-      inventions: ["Glasses", "Zipper"],
-      questions: ["What if you couldn't see clearly?", "How long would it take to button 20 small buttons on your boots?"]
-    },
-    {
-      time: "7:00 AM - Breakfast",
-      modern: "You grab milk from the fridge and heat up some oatmeal in the microwave.",
-      inventions: ["Refrigerator", "Microwave Oven"],
-      questions: ["How would you keep food from spoiling?", "How would you quickly heat up food?"]
-    },
-    {
-      time: "7:30 AM - Heading Out",
-      modern: "It's raining, so you grab your umbrella and head out.",
-      inventions: ["Umbrella"],
-      questions: ["How would you stay dry?", "Would you just... get wet?"]
-    },
-    {
-      time: "12:00 PM - Lunch",
-      modern: "You open a can of soup, put a bandage on a paper cut, and write a note with your pen.",
-      inventions: ["Canned Food", "Band-Aids", "Ballpoint Pen"],
-      questions: ["How would food be preserved for months?", "How would you treat a small cut?"]
-    },
-    {
-      time: "3:00 PM - Travel",
-      modern: "You hop on your bike with comfortable rubber tires and use GPS to find your way.",
-      inventions: ["Bicycle", "Rubber Tires", "GPS Navigation"],
-      questions: ["How would you get around quickly without a horse?", "How would you find your way in an unfamiliar place?"]
-    },
-    {
-      time: "7:00 PM - Evening",
-      modern: "As it gets dark, you turn on the lights and play some video games.",
-      inventions: ["Electric Light Bulb", "Video Games"],
-      questions: ["What would you do when it got dark?", "How would you entertain yourself at night?"]
-    }
-  ]
-
-  const scenario = scenarios[currentScenario]
-  const relatedInventions = inventions.filter(inv =>
-    scenario.inventions.includes(inv.name)
-  )
-
-  const nextScenario = () => {
-    setRevealed(false)
-    setCurrentScenario((currentScenario + 1) % scenarios.length)
-  }
-
-  const prevScenario = () => {
-    setRevealed(false)
-    setCurrentScenario((currentScenario - 1 + scenarios.length) % scenarios.length)
-  }
-
-  return (
-    <div className="day-without-view">
-      <div className="day-intro">
-        <h2>🌅 A Day Without Modern Inventions</h2>
-        <p>Walk through a typical day and discover how different it would be without the things we take for granted!</p>
-      </div>
-
-      <div className="scenario-container">
-        <div className="scenario-progress">
-          {scenarios.map((_, idx) => (
-            <div
-              key={idx}
-              className={`progress-dot ${idx === currentScenario ? 'active' : ''} ${idx < currentScenario ? 'completed' : ''}`}
-              onClick={() => { setCurrentScenario(idx); setRevealed(false); }}
-            />
-          ))}
-        </div>
-
-        <div className="scenario-card">
-          <div className="scenario-time">{scenario.time}</div>
-
-          <div className="scenario-modern">
-            <h3>✨ Today:</h3>
-            <p>{scenario.modern}</p>
-          </div>
-
-          <div className="scenario-inventions">
-            <h4>Inventions used:</h4>
-            <div className="invention-tags">
-              {relatedInventions.map(inv => (
-                <button
-                  key={inv.id}
-                  className="invention-tag"
-                  onClick={() => onSelectInvention(inv)}
-                >
-                  {inv.emoji} {inv.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {!revealed ? (
-            <button className="reveal-btn" onClick={() => setRevealed(true)}>
-              🤔 What was it like before?
-            </button>
-          ) : (
-            <div className="scenario-before">
-              <h3>🕰️ Life Before:</h3>
-              <div className="think-questions">
-                {scenario.questions.map((q, idx) => (
-                  <div key={idx} className="think-question">
-                    <span className="question-icon">💭</span>
-                    <p>{q}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="before-facts">
-                {relatedInventions.map(inv => (
-                  <div key={inv.id} className="before-fact">
-                    <span className="fact-emoji">{inv.emoji}</span>
-                    <div>
-                      <strong>Before {inv.name}:</strong>
-                      <p>{inv.lifeBefore[0]}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="scenario-nav">
-            <button onClick={prevScenario} className="nav-arrow">← Earlier</button>
-            <span className="scenario-count">{currentScenario + 1} of {scenarios.length}</span>
-            <button onClick={nextScenario} className="nav-arrow">Later →</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function TimeChallengeView() {
-  const [gameState, setGameState] = useState('intro') // intro, playing, result
+  const [gameState, setGameState] = useState('intro')
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [score, setScore] = useState(0)
   const [guess, setGuess] = useState(1900)
@@ -463,7 +694,8 @@ function TimeChallengeView() {
 function SortGameView() {
   const [gameState, setGameState] = useState('intro')
   const [items, setItems] = useState([])
-  const [attempts, setAttempts] = useState(0)
+  const [feedback, setFeedback] = useState(null)
+  const [hints, setHints] = useState([])
   const [completed, setCompleted] = useState(false)
   const [draggedIndex, setDraggedIndex] = useState(null)
 
@@ -472,25 +704,51 @@ function SortGameView() {
       .filter(inv => typeof inv.year === 'number')
       .sort(() => Math.random() - 0.5)
       .slice(0, 5)
-      .map(inv => ({ ...inv, placed: false }))
 
-    // Shuffle the display order
-    const displayOrder = [...shuffled].sort(() => Math.random() - 0.5)
+    // Shuffle until not sorted
+    let displayOrder = [...shuffled]
+    const correctOrder = [...shuffled].sort((a, b) => getYear(a.year) - getYear(b.year))
+    while (JSON.stringify(displayOrder.map(d => d.id)) === JSON.stringify(correctOrder.map(c => c.id))) {
+      displayOrder = [...shuffled].sort(() => Math.random() - 0.5)
+    }
+
     setItems(displayOrder)
-    setAttempts(0)
+    setFeedback(null)
+    setHints([])
     setCompleted(false)
     setGameState('playing')
   }
 
   const checkOrder = () => {
     const years = items.map(item => getYear(item.year))
-    const sorted = [...years].sort((a, b) => a - b)
-    const isCorrect = JSON.stringify(years) === JSON.stringify(sorted)
-    setAttempts(attempts + 1)
-    if (isCorrect) {
+    const sortedYears = [...years].sort((a, b) => a - b)
+
+    // Check each position
+    const newHints = items.map((item, index) => {
+      const correctIndex = sortedYears.indexOf(getYear(item.year))
+      if (index === correctIndex) {
+        return 'correct'
+      } else if (index < correctIndex) {
+        return 'move-right'
+      } else {
+        return 'move-left'
+      }
+    })
+
+    setHints(newHints)
+
+    const correctCount = newHints.filter(h => h === 'correct').length
+
+    if (correctCount === items.length) {
       setCompleted(true)
+      setFeedback({ type: 'success', message: '🎉 Perfect! You got them all in order!' })
+    } else if (correctCount >= 3) {
+      setFeedback({ type: 'close', message: `Almost there! ${correctCount} out of ${items.length} are in the right spot. Look at the arrows for hints!` })
+    } else if (correctCount >= 1) {
+      setFeedback({ type: 'progress', message: `Good start! ${correctCount} in the right spot. The arrows show which way to move the others.` })
+    } else {
+      setFeedback({ type: 'hint', message: "Not quite! The arrows show which direction each item needs to move." })
     }
-    return isCorrect
   }
 
   const handleDragStart = (index) => {
@@ -507,6 +765,8 @@ function SortGameView() {
     newItems.splice(index, 0, draggedItem)
     setItems(newItems)
     setDraggedIndex(index)
+    setHints([]) // Clear hints when moving
+    setFeedback(null)
   }
 
   const handleDragEnd = () => {
@@ -522,6 +782,8 @@ function SortGameView() {
     newItems[fromIndex] = newItems[toIndex]
     newItems[toIndex] = temp
     setItems(newItems)
+    setHints([]) // Clear hints when moving
+    setFeedback(null)
   }
 
   if (gameState === 'intro') {
@@ -532,7 +794,8 @@ function SortGameView() {
           <p>Can you put these inventions in order from oldest to newest?</p>
           <div className="sort-instructions">
             <p>📱 Drag and drop the cards, or use the arrow buttons to rearrange them.</p>
-            <p>🎯 Try to get them in the correct order with as few attempts as possible!</p>
+            <p>✓ When you check your answer, you'll get hints showing which items need to move!</p>
+            <p>🎯 Green = correct position, arrows show which way to move others.</p>
           </div>
           <button className="start-btn" onClick={startGame}>
             🚀 Start Game
@@ -546,7 +809,6 @@ function SortGameView() {
     <div className="sort-view">
       <div className="sort-header">
         <h2>Put these in order: Oldest → Newest</h2>
-        <div className="attempts-display">Attempts: {attempts}</div>
       </div>
 
       <div className="sort-container">
@@ -559,12 +821,17 @@ function SortGameView() {
           {items.map((item, index) => (
             <div
               key={item.id}
-              className={`sort-card ${draggedIndex === index ? 'dragging' : ''} ${completed ? 'correct' : ''}`}
+              className={`sort-card ${draggedIndex === index ? 'dragging' : ''} ${hints[index] || ''}`}
               draggable={!completed}
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
             >
+              {hints[index] && hints[index] !== 'correct' && (
+                <div className={`hint-arrow ${hints[index]}`}>
+                  {hints[index] === 'move-left' ? '← move left' : 'move right →'}
+                </div>
+              )}
               <div className="sort-card-content">
                 <span className="sort-emoji">{item.emoji}</span>
                 <span className="sort-name">{item.name}</span>
@@ -581,14 +848,20 @@ function SortGameView() {
         </div>
       </div>
 
+      {feedback && (
+        <div className={`sort-feedback ${feedback.type}`}>
+          {feedback.message}
+        </div>
+      )}
+
       {!completed ? (
         <button className="check-btn" onClick={checkOrder}>
           ✓ Check My Order
         </button>
       ) : (
         <div className="sort-complete">
-          <h3>🎉 Correct!</h3>
-          <p>You got it in {attempts} {attempts === 1 ? 'try' : 'tries'}!</p>
+          <h3>🎉 Well Done!</h3>
+          <p>You figured out the correct order!</p>
           <button className="start-btn" onClick={startGame}>
             🔄 Play Again
           </button>
@@ -665,7 +938,7 @@ function InventionModal({ invention, onClose }) {
 }
 
 function App() {
-  const [view, setView] = useState('explore')
+  const [view, setView] = useState('day-without')
   const [selectedInvention, setSelectedInvention] = useState(null)
 
   return (
@@ -673,11 +946,11 @@ function App() {
       <Header currentView={view} onNavigate={setView} />
 
       <main className="main">
-        {view === 'explore' && (
-          <ExploreView onSelectInvention={setSelectedInvention} />
-        )}
         {view === 'day-without' && (
           <DayWithoutView onSelectInvention={setSelectedInvention} />
+        )}
+        {view === 'explore' && (
+          <ExploreView onSelectInvention={setSelectedInvention} />
         )}
         {view === 'time-challenge' && (
           <TimeChallengeView />
